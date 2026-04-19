@@ -13,14 +13,14 @@ and date range, then selects the best candidate based on cloud cover. The SCL (S
 in parallel with the spectral bands and used to mask out clouds, cloud shadows, and saturated pixels before storing the
 processed image.
 
-The band values are normalized, clipped to the 2nd–98th percentile, and scaled to [0, 1] to match the requirements
-of the training data.
+The band values are normalized and clipped to the 2nd–98th percentile. Then they are scaled to [0, 1] and re-sampled 
+to match the requirements of the training data.
 
 Each processed band is stored alongside its metadata, source tile ID, acquisition date, to form 
 the provenance record for that image.
 
-The output of the pipeline is a set of processed, AOI-cropped, cloud-filtered GeoTIFF files for T1 and T2, for the requested bands,
-along with a manifest file that links each pair and its metadata.
+The output of the pipeline is a set of processed, AOI-cropped, cloud-filtered GeoTIFF files for T1 and T2, 
+for the requested bands, along with a manifest file that links each pair and its metadata.
 
 ## Production readiness
 
@@ -37,6 +37,11 @@ I also didn't add data versioning, which in production would be essential for re
 
 Also, I did not design and implement a way to deal with AOI that would be overlapped by multiple MGRS/Sentiel-2 tiles.
 That would be a significant need for the production-readiness of the pipelines.
+Taking into account for AOI that overlaps multiple tiles would mean that we have to download multiple tiles, with different CRS.
+Also, the cloud cover metrics to select the image would have to be computed for each tile cropped to the AOI.
+
+Finally, I did not design or implement image co-registration, which might improve the model accuracy.
+However, for a model using only Sentinel-2, co-registration may not be necessary.
 
 ## Annotation workflow:
 
