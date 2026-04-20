@@ -2,29 +2,42 @@
 
 ## Architecture 
 
-![architecture_diagram.webp](architecture_diagram.webp)
-
 The pipeline is designed around the concept of image pairs, a before (T1) and after (T2), which is the fundamental unit
-of input for a change detection model. The outer loop iterates over both temporal windows, running the same processing 
-logic for each.
+of input for a change detection model. Also, a change detection model takes as input images of the same size and
+spatial resolution, which is going to be a really important requirement for the pipeline.
+
+> **Note:** I'm going to assume that the AOI are small (< 1km). Because Sentinel 2 tiles are slightly overlaping, in
+> most of the cases, the AOI should fall in a single tile.
+
+![architecture_diagram.webp](architecture_diagram.png)
+
+On the diagram, the outer loop iterates over both temporal windows, running the same processing logic for each.
 
 For each window, the pipeline queries the STAC API to find available Sentinel-2 L2A images matching the AOI
-and date range, then selects the best candidate based on cloud cover. The SCL (Scene Classification Layer) is downloaded
-in parallel with the spectral bands and used to mask out clouds, cloud shadows, and saturated pixels before storing the
-processed image.
+and date range, then selects the best candidate based on cloud cover (basic filtering but suffisant for the task).
 
-The band values are normalized and clipped to the 2nd–98th percentile. Then they are scaled to [0, 1] and re-sampled 
-to match the requirements of the training data.
+Before processing the different bands, the pipeline must create a tile grid using the AOI, the tile size specified by
+the user, and the CRS of the selected image. It will allow the pipeline to produce same-size images that would cover the whole AOI.
+If the grid doesn't perfectly fit the AOI size, it is possible to add some padding as well as overlap.
+The tile grid is created taking as resolution 10m.
 
-Each processed band is stored alongside its metadata, source tile ID, acquisition date, to form 
-the provenance record for that image.
+The SCL (Scene Classification Layer) is downloaded in parallel with the spectral bands and will be used to mask out clouds,
+cloud shadows, and saturated pixels before storing the processed image.
+To optimize the processing, we use network cropping to avoid downloading the entire image, just the 
+area of interest. This is possible because STAC API provides COG (Cloud Optimized GeoTIFF) URLs for each image.
+
+The band values are re-sampled to match the requirements of the training data to fit a 10m resolution, then they are clipped
+to the 2nd–98th percentile and scaled to [0, 1].
+
+Before storing each processed band, the image is split following the grid.
+Then, the tiles are stored alongside the band metadata, source tile ID, acquisition date, to form the provenance record for that image.
 
 The output of the pipeline is a set of processed, AOI-cropped, cloud-filtered GeoTIFF files for T1 and T2, 
 for the requested bands, along with a manifest file that links each pair and its metadata.
 
 ## Production readiness
 
-To run this pipeline in production, it would be require to containerize it with Docker to ensure reproducibility across
+To run this pipeline in production, it would be required to containerize it with Docker to ensure reproducibility across
  environments and expose it as a CLI job that can be triggered manually or scheduled through an orchestrator like Airflow.
 
 Regarding scaling, for large AOIs or batch runs over many time periods, the processing could be distributed across workers
