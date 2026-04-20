@@ -10,7 +10,7 @@ Change detection models require pairs of images over a period of time and a prec
 
 ## Architecture 
 
-![architecture_diagram.webp](docs/architecture_diagram.webp)
+![architecture_diagram.png](docs/architecture_diagram.png)
 
 For more information about the architecture: [system_design.md](docs/system_design.md)
 
