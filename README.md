@@ -126,7 +126,7 @@ An example GeoJSON AOI and expected outputs are in `docs/exemple/`:
 ### Run the Pipeline
 
 ```shell script
-python -m src.main --aoi docs/example/nantes_bridge.geojson --t1-start 2026-03-01 --t1-end 2026-03-24 --t2-start 2026-04-01 --t2-end 2026-04-17 --bands blue green red --tile-size 16
+python -m src.main --aoi docs/example/nantes_bridge.geojson --t1-start 2026-03-01 --t1-end 2026-03-24 --t2-start 2026-04-01 --t2-end 2026-04-17 --bands blue green red --tile-size 256
 ```
 
 
@@ -191,6 +191,22 @@ run_task = PythonOperator(
 
 The function returns a dict with manifest path and tile locations, suitable for downstream XCom.
 
+## Docker
+
+Build and run in a containerized environment:
+
+```shell script
+docker build -t sentinel2-pipeline .
+docker run -v $(pwd)/output:/output sentinel2-pipeline \
+  --aoi /input/aoi.geojson \
+  --t1-start 2026-03-01 \
+  --t1-end 2026-03-24 \
+  --t2-start 2026-04-01 \
+  --t2-end 2026-04-17 \
+  --bands blue green red \
+  --tile-size 256 \
+  --output-dir /output
+```
 
 
 ## Design Notes
