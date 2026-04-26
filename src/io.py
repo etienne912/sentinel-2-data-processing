@@ -21,6 +21,23 @@ def write_tiles(
     source_item_id: str,
     acquisition_date: str,
 ) -> list[Path]:
+    """
+    Write tiles on disk
+
+    Parameters
+    ----------
+    tiles
+    tile_grid
+    output_dir
+    band_keys
+    image_crs
+    source_item_id
+    acquisition_date
+
+    Returns
+    -------
+
+    """
     # rasterio.open(..., 'w', driver='GTiff', dtype='float32', nodata=NaN)
     # Per-band tags: band_name, source_item, acquisition_date
     epoch_dir = output_dir / source_item_id
@@ -66,7 +83,31 @@ def build_manifest_entry(
     aoi: Polygon,
     band_keys: list[str],
 ) -> dict:
-    # Paths stored relative to output_dir (portable across container mounts)
+    """
+    Build a manifest entry
+
+    Parameters
+    ----------
+    t1_item : pystac.Item
+        Selected item for the T1 epoch
+    t2_item : pystac.Item
+        Selected item for the T2 epoch
+    tile_paths_t1 : list[Path]
+        The path list of the T1 tiles
+    tile_paths_t2 : list[Path]
+        The path list of the T1 tiles
+    output_dir : Path
+        The output directory
+    aoi : Polygon
+        The AOI
+    band_keys : list[str]
+        The keys of the bands requested by the user
+
+    Returns
+    -------
+    dict
+        A complet manifest entry
+    """
     return {
         "t1_item_id": t1_item.id,
         "t2_item_id": t2_item.id,
@@ -78,18 +119,58 @@ def build_manifest_entry(
 
 
 def write_manifest(entries: dict, output_dir: Path) -> Path:
+    """
+    Write manifest file on disk
+
+    Parameters
+    ----------
+    entries : dict
+        The content of the manifest
+    output_dir : Path
+        The output directory
+
+    Returns
+    -------
+    Path
+        The path to the manifest file
+    """
     manifest_path = output_dir / MANIFEST_FILENAME
+
     with open(manifest_path, "w") as f:
         json.dump(entries, f, indent=2)
+
     return manifest_path
 
 
 def load_geojson(path: str | Path) -> shapely.Polygon:
+    """
+    Load geojson from path
+
+    Parameters
+    ----------
+    path : str | Path
+        The path to the geojson
+
+    Returns
+    -------
+    shapely.Polygon
+        A shapely polygon that represents the geojson
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist
+    ValueError
+        If the geojson is not a Polygon
+    """
     geojson_path = Path(path)
     if not geojson_path.exists():
         raise FileNotFoundError(f"GeoJSON file not found: '{path}'.")
+
     with open(geojson_path) as f:
         geojson = shapely.from_geojson(f.read())
+
     if not isinstance(geojson, shapely.Polygon):
         raise ValueError(f"GeoJSON must be a Polygon, got {type(geojson).__name__}.")
+
     return geojson

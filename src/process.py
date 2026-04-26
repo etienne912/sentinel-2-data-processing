@@ -1,3 +1,4 @@
+import affine
 import numpy as np
 from rasterio.features import geometry_mask
 from shapely import Polygon
@@ -11,9 +12,30 @@ def apply_mask(
     bands: dict[str, np.ndarray],
     scl: np.ndarray,
     aoi: Polygon,
-    transform,
+    transform: affine.Affine,
     invalid_classes: set[int] = SCL_INVALID_CLASSES,
 ) -> dict[str, np.ndarray]:
+    """
+    Mask using the SCL and the AOI each band in a raster.
+
+    Parameters
+    ----------
+    bands : dict
+        Dict containing band names as keys and numpy arrays as values.
+    scl : np.ndarray
+        The SCL data array
+    aoi : Polygon
+        The AOI
+    transform : affine.Affine
+        The affine transform to apply to the raster.
+    invalid_classes : set[int]
+        Set of invalid classes to mask.
+
+    Returns
+    -------
+    dict
+        Masked bands
+    """
     h, w = scl.shape
 
     scl_mask = np.isin(scl.astype(np.uint8), list(invalid_classes))
@@ -29,15 +51,29 @@ def apply_mask(
 
     mask = np.logical_or(aoi_mask, scl_mask)
 
-    return {
-        band_name: np.where(mask, np.nan, band.astype(np.float32))
-        for band_name, band in bands.items()
-    }
+    return {band_name: np.where(mask, np.nan, band.astype(np.float32)) for band_name, band in bands.items()}
 
 
 def normalize_bands(
     bands: dict[str, np.ndarray], low_pct: float = PERCENTILE_LOW, high_pct: float = PERCENTILE_HIGH
 ) -> dict[str, np.ndarray]:
+    """
+    Normalize the band values in each band in a raster.
+
+    Parameters
+    ----------
+    bands : dict
+        Dict containing band names as keys and numpy arrays as values.
+    low_pct : float
+        Lower percentile value to normalize band values.
+    high_pct : float
+        Higher percentile value to normalize band values.
+
+    Returns
+    -------
+    dict
+        The bands normalized
+    """
     result = {}
     for band_name, band in bands.items():
         low = np.nanpercentile(band, low_pct)
@@ -74,7 +110,7 @@ def _extract_patch(
 
 
 def split_into_tiles(
-    bands: dict[str, np.ndarray], tiles: list[TileSpec], aoi_transform
+    bands: dict[str, np.ndarray], tiles: list[TileSpec], aoi_transform: affine.Affine
 ) -> dict[str, dict[str, np.ndarray]]:
     """Slice each band into per-tile patches aligned to the tile grid.
 
@@ -98,7 +134,7 @@ def split_into_tiles(
     }
 
 
-def _tile_origin_px(inv_transform, bounds_crs: tuple[float, float, float, float]) -> tuple[int, int]:
+def _tile_origin_px(inv_transform: affine.Affine, bounds_crs: tuple[float, float, float, float]) -> tuple[int, int]:
     """Return (row_start, col_start) of the tile's top-left corner in AOI pixel space."""
     xmin, _, _, ymax = bounds_crs  # top-left corner in CRS is (xmin, ymax)
     col, row = inv_transform * (xmin, ymax)

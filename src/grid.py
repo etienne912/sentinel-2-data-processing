@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import itertools
+from dataclasses import dataclass
 
 import affine
 import shapely
@@ -29,6 +29,27 @@ def build_tile_grid(
     overlap_px: int = DEFAULT_OVERLAP_PX,
     resolution_m: float = NATIVE_RESOLUTION_M,
 ) -> list[TileSpec]:
+    """
+    Build a tile grid with fixed size to cover the whole AOI.
+
+    Parameters
+    ----------
+    aoi : shapely.Polygon
+        The AOI to build the tile grid from.
+    product_crs : string
+        The CRS of the product.
+    tile_size_px : int
+        The size of the tile in pixels.
+    overlap_px : int
+        The overlap in pixels.
+    resolution_m : float
+        The resolution of the tiles in meters.
+
+    Returns
+    -------
+    list[TileSpec]
+        A list of TileSpec objects that all together cover the AOI.
+    """
     # 1. Project AOI EPSG:4326 -> image_crs
     t = Transformer.from_crs("EPSG:4326", product_crs, always_xy=True)
     bounds = aoi.bounds

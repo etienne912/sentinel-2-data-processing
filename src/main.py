@@ -1,10 +1,12 @@
 import argparse
 import logging
+from datetime import datetime
 from pathlib import Path
 
 import shapely
 from pyproj import Transformer
 from pystac import Item
+from pystac_client import Client
 
 from src.config import (
     SPECTRAL_BANDS,
@@ -27,9 +29,9 @@ logger = logging.getLogger(__name__)
 
 def _process_epoch(
     t_id: str,
-    date_range: tuple,
+    date_range: tuple[datetime, datetime],
     aoi: shapely.Polygon,
-    catalog,
+    catalog: Client,
     bands_keys: list[str],
     tile_size_px: int,
     overlap_px: int,
@@ -38,6 +40,7 @@ def _process_epoch(
 ) -> tuple[Item, list[Path]]:
     logger.info(f"Processing {t_id} images between {date_range[0]} and {date_range[1]}")
 
+    # Products
     products = search_products(catalog, aoi, date_range[0], date_range[1], max_items=10)
     product = select_best_product(products, max_cloud_cover)
     product_crs = get_item_crs(product)
@@ -46,9 +49,11 @@ def _process_epoch(
 
     product_ref_grid = build_reference_grid(product.assets[SPECTRAL_BAND_REF].href, aoi.bounds)
 
+    # Reproject the AOI into the selected product CRS
     transformer = Transformer.from_crs(4326, product_crs, always_xy=True)
     projected_aoi = shapely.transform(aoi, transformer.transform, interleaved=False)
 
+    # Build tile grid
     tile_grid = build_tile_grid(
         aoi=aoi,
         product_crs=product_crs,
@@ -57,11 +62,15 @@ def _process_epoch(
     )
     logger.debug(f"Grid created with {len(tile_grid)} tiles")
 
+    # Download bands
     bands = fetch_aoi_data_bands(item=product, band_keys=bands_keys, ref_grid=product_ref_grid)
     scl = fetch_aoi_scl(item=product, ref_grid=product_ref_grid)
 
+    # Process bands
     bands = apply_mask(bands, scl, projected_aoi, product_ref_grid["transform"])
     bands = normalize_bands(bands)
+
+    # Split bands in tiles
     tiles = split_into_tiles(bands, tile_grid, product_ref_grid["transform"])
 
     tile_paths = write_tiles(
@@ -72,8 +81,8 @@ def _process_epoch(
 
 def run_pipeline(
     aoi: shapely.Polygon,
-    t1_date_range: tuple[str, str],
-    t2_date_range: tuple[str, str],
+    t1_date_range: tuple[datetime, datetime],
+    t2_date_range: tuple[datetime, datetime],
     bands_keys: list[str] = SPECTRAL_BANDS,
     tile_size_px: int = DEFAULT_TILE_SIZE_PX,
     overlap_px: int = DEFAULT_OVERLAP_PX,
@@ -100,6 +109,7 @@ def run_pipeline(
 
     entries = build_manifest_entry(t1_item, t2_item, t1_tile_paths, t2_tile_paths, output_dir, aoi, bands_keys)
     manifest_path = write_manifest(entries, output_dir)
+
     return {"manifest": manifest_path, "t1_tiles": t1_tile_paths, "t2_tiles": t2_tile_paths}
 
 
