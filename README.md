@@ -112,7 +112,7 @@ On **25 March 2026**, a new bridge (Anne de Bretagne) was installed in Nantes, F
 - Clear before/after imagery available
 - Visible change in both optical and infrared bands
 
-![img.png](docs/example/bridge_picture.png)
+<img alt="img.png" src="docs/example/bridge_picture.png" width="500"/>
 
 You can find more information about the bridge installation in [Ouest-France](https://www.ouest-france.fr/pays-de-la-loire/nantes-44000/cest-fait-le-tablier-du-pont-anne-de-bretagne-est-pose-sur-ses-quatre-piliers-a-nantes-8597ece0-283b-11f1-955e-7a93d197b6cf) (French local newspaper).
 
@@ -123,18 +123,25 @@ An example GeoJSON AOI and expected outputs are in `docs/exemple/`:
 - `S2B_30TXT_20260318_0_L2A.png` — Before image (18 March 2026)
 - `S2A_30TXT_20260407_1_L2A.png` — After image (7 April 2026)
 
+**Selected AOI**: A small polygon around the bridge, and construction site.
+
+This is a plot of the AOI over high-quality satellite imagery (Maxar).
+
+<img alt="AOI_over_satellite.jpg" src="docs/example/AOI_over_satellite.jpg" width="500px"/>
+
 ### Run the Pipeline
 
 ```shell script
 python -m src.main --aoi docs/example/nantes_bridge.geojson --t1-start 2026-03-01 --t1-end 2026-03-24 --t2-start 2026-04-01 --t2-end 2026-04-17 --bands blue green red --tile-size 256
 ```
 
-
 ### Understanding the Results
 
 **Before** (18 March 2026) — The construction site is visible, but the bridge deck is not yet in place:
 
-![Before](docs/example/S2B_30TXT_20260318_0_L2A.png)
+<img alt="Before" src="docs/example/S2B_30TXT_20260318_0_L2A.png" width="500"/>
+
+_RGB composite image from Sentinel-2._
 
 The image shows:
 - Urban area
@@ -143,7 +150,9 @@ The image shows:
 
 **After** (7 April 2026) — The bridge structure is complete and visible:
 
-![After](docs/example/S2A_30TXT_20260407_1_L2A.png)
+<img alt="After" src="docs/example/S2A_30TXT_20260407_1_L2A.png" width="500"/>
+
+_RGB composite image from Sentinel-2._
 
 The image shows:
 - **Bridge deck** clearly visible in the center (linear structure across the river)
